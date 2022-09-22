@@ -94,12 +94,6 @@ class Landmarks(bpy.types.Panel):
                 
                 row = box.row();
                 row.operator(LandmarksPairFinder.bl_idname);
-                
-                box = layout.box();
-                box.label(text='Experimnetal: Signatures Matching');
-                
-                row = box.row();
-                row.operator(SignaturesMatching.bl_idname);
 
                 box = layout.box();
                 box.label(text='Mapped Mesh Operations')
