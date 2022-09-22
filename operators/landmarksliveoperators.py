@@ -19,7 +19,7 @@ from GenericMarkerCreator28.utils.bgl_utilities import getPointBatch, getHollowC
 from GenericMarkerCreator28.utils.interactiveutilities import ScreenPoint3D;
 from GenericMarkerCreator28.utils.staticutilities import detectMN, applyMarkerColor, addConstraint, getConstraintsKD, deleteObjectWithMarkers, reorderConstraints;
 from GenericMarkerCreator28.utils.staticutilities import getMarkersForMirrorX, getGenericLandmark, getMeshForBlenderMarker, getBlenderMarker;
-from GenericMarkerCreator28.utils.meshmathutils import getBarycentricCoordinateFromPolygonFace, getBarycentricCoordinate, getCartesianFromBarycentre, getGeneralCartesianFromBarycentre, getTriangleArea;
+from GenericMarkerCreator28.utils.meshmathutils import getBarycentricCoordinateFromPolygonFace, getBarycentricCoordinate, getBarycentricCoordinateFromIndices, getCartesianFromBarycentre, getGeneralCartesianFromBarycentre, getTriangleArea;
 from GenericMarkerCreator28.utils.mathandmatrices import getObjectBounds;
 from GenericMarkerCreator28.utils.mathandmatrices import getBMMesh, ensurelookuptable;
 # def DrawGL(self, context):
@@ -56,10 +56,10 @@ class LiveLandmarksCreator(bpy.types.Operator):
         self.__draw_event = None
         self.__widgets = []
 
-    def getPolygonBarycenter(self, context, the_mesh, face_index, hitpoint):
+    def getPolygonBarycenter(self, context, the_mesh, the_evaluated_mesh, face_index, hitpoint):
         face = the_mesh.data.polygons[face_index];
         loops = the_mesh.data.loops;
-        vertices = the_mesh.data.vertices;
+        vertices = the_evaluated_mesh.data.vertices;
         a = vertices[loops[face.loop_indices[0]].vertex_index];
         b = vertices[loops[face.loop_indices[1]].vertex_index];
         c = vertices[loops[face.loop_indices[2]].vertex_index];
@@ -68,10 +68,15 @@ class LiveLandmarksCreator(bpy.types.Operator):
         if(len(face.loop_indices) > 3):
             d = vertices[loops[face.loop_indices[3]].vertex_index];
         
-        u,v,w,ratio,isinside = getBarycentricCoordinate(hitpoint, a.co, b.co, c.co, snapping=the_mesh.snap_landmarks);
+        area, area2 = getTriangleArea(a.co, b.co, c.co);
+        # u,v,w,ratio,isinside = getBarycentricCoordinate(hitpoint, a.co, b.co, c.co, epsilon=area * 0.1, snapping=the_mesh.snap_landmarks);
+        u,v,w,ratio,isinside = getBarycentricCoordinateFromIndices(hitpoint, the_evaluated_mesh, [a.index, b.index, c.index], epsilon=area * 0.1, snapping=the_mesh.snap_landmarks);
+        
         if(d and not isinside):
-            u,v,w,ratio,isinside = getBarycentricCoordinate(hitpoint, b.co, c.co, d.co, snapping=the_mesh.snap_landmarks);
-            return u, v, w, b, c, d, isinside, face
+            area, area2 = getTriangleArea(c.co, d.co, a.co);
+            # u,v,w,ratio,isinside = getBarycentricCoordinate(hitpoint, c.co, d.co, a.co, epsilon=area * 0.1, snapping=the_mesh.snap_landmarks);
+            u,v,w,ratio,isinside = getBarycentricCoordinateFromIndices(hitpoint, the_evaluated_mesh, [c.index, d.index, a.index], epsilon=area * 0.1, snapping=the_mesh.snap_landmarks);
+            return u, v, w, c, d, a, isinside, face
 
         return u, v, w, a, b, c, isinside, face
 
@@ -83,10 +88,11 @@ class LiveLandmarksCreator(bpy.types.Operator):
         if event.type in {'ESC'}:
             # context.area.header_text_set(text="");
             bpy.ops.object.select_all(action="DESELECT");
-            self.mousepointer.hide_select = False
-            self.mousepointer.select_set(True);
-            context.view_layer.objects.active = self.mousepointer;
-            bpy.ops.object.delete();
+            if(self.mousepointer):
+                self.mousepointer.hide_select = False
+                self.mousepointer.select_set(True);
+                context.view_layer.objects.active = self.mousepointer;
+                bpy.ops.object.delete();
             self.__finish(context)
             return {'CANCELLED'}
 
@@ -96,6 +102,7 @@ class LiveLandmarksCreator(bpy.types.Operator):
             
 
             the_mesh = None;
+            the_evaluated_mesh = None
             face_index = -1;
             hitpoint = None;
             use_bvh_tree = None;
@@ -103,12 +110,14 @@ class LiveLandmarksCreator(bpy.types.Operator):
             
             if(onM):
                 the_mesh = self.M;
+                the_evaluated_mesh = self.M_eval
                 face_index = m_face_index;
                 hitpoint = m_hitpoint;
                 use_bvh_tree = self.bvhtree_m;
                 onMesh = onM;
             if(onN):
                 the_mesh = self.N;
+                the_evaluated_mesh = self.N_eval
                 face_index = n_face_index;
                 hitpoint = n_hitpoint;
                 use_bvh_tree = self.bvhtree_n;
@@ -123,15 +132,17 @@ class LiveLandmarksCreator(bpy.types.Operator):
                     markerskd, markercos = getConstraintsKD(context, the_mesh);
                     co, index, dist = markerskd.find(hitpoint);
                     if(not len(the_mesh.generic_landmarks)):
-                        dist = None;
+                        dist = 9999999.0;
                         
                     if(dist):
                         if(dist > constants.MARKER_MIN_DISTANCE):
                             proceedToAddMarker = True;
                         else:
                             proceedToAddMarker = False;
+                
+                print('Proceed to add marker: %s, face index: %s, On Mesh: %s'%(proceedToAddMarker, face_index, onMesh) )
                 if(proceedToAddMarker):
-                    u, v, w, a, b, c, isinside, face = self.getPolygonBarycenter(context, the_mesh, face_index, hitpoint)
+                    u, v, w, a, b, c, isinside, face = self.getPolygonBarycenter(context, the_mesh, the_evaluated_mesh, face_index, hitpoint)
                     finalPoint = getCartesianFromBarycentre(Vector((u,v,w)), a.co, b.co, c.co);
                     
                     print('PROCEED TO ADD MARKER : %s, IS INSIDE : %s'%(proceedToAddMarker, isinside));
@@ -153,7 +164,7 @@ class LiveLandmarksCreator(bpy.types.Operator):
                                 
                                 face = the_mesh.data.polygons[index];a
 
-                                u, v, w, a, b, c, isinside, face = self.getPolygonBarycenter(context, the_mesh, face.index, co)
+                                u, v, w, a, b, c, isinside, face = self.getPolygonBarycenter(context, the_mesh, the_evaluated_mesh, face.index, co)
                                 finalPoint = getCartesianFromBarycentre(Vector((u,v,w)), a.co, b.co, c.co);
                                 addConstraint(context, the_mesh, [u,v,w], [a.index, b.index, c.index], co, faceindex=face.index);
                                 print('ADD MIRROR MARKER AT ', center, u, v, w);
@@ -186,34 +197,31 @@ class LiveLandmarksCreator(bpy.types.Operator):
                 self.hit, onN, n_face_index, n_hitpoint = ScreenPoint3D(context, event, position_mouse = False, use_mesh=self.N, bvh_tree = self.bvhtree_n);
             except ValueError:
                 return {'RUNNING_MODAL'}
+
             the_mesh = None;
+            the_evaluated_mesh = None;
             face_index = -1;
             hitpoint = None;
             
             if(onM):
                 the_mesh = self.M;
+                the_evaluated_mesh = self.M_eval
                 face_index = m_face_index;
                 hitpoint = m_hitpoint;
-            if(onN):
+            elif (onN):
                 the_mesh = self.N;
+                the_evaluated_mesh = self.N_eval
                 face_index = n_face_index;
                 hitpoint = n_hitpoint;
 #             context.area.header_text_set("hit: %.4f %.4f %.4f" % tuple(self.hit));
             if(onM or onN):
                 if(face_index):
-                    face = the_mesh.data.polygons[face_index];
-                    loops = the_mesh.data.loops;
-                    vertices = the_mesh.data.vertices;
-                    a = vertices[loops[face.loop_indices[0]].vertex_index];
-                    b = vertices[loops[face.loop_indices[1]].vertex_index];
-                    c = vertices[loops[face.loop_indices[2]].vertex_index];
-                    area, area2 = getTriangleArea(a.co, b.co, c.co);
-                    u,v,w,ratio,isinside = getBarycentricCoordinate(hitpoint, a.co, b.co, c.co, epsilon=area * 0.1, snapping=the_mesh.snap_landmarks);
-                        
+                    u, v, w, a, b, c, isinside, face = self.getPolygonBarycenter(context, the_mesh, the_evaluated_mesh, face_index, hitpoint,)
                     newco = getCartesianFromBarycentre(Vector((u,v,w)), a.co, b.co, c.co);
-                    # context.area.header_text_set("Barycentric Values: %.8f %.8f %.8f %.8f" % tuple((u,v,w,(u+v+w))));
-                        
+                    # context.area.header_text_set("Barycentric Values: %.8f %.8f %.8f %.8f" % tuple((u,v,w,(u+v+w))));                        
                     self.mousepointer.location = the_mesh.matrix_world @ newco;
+                else:
+                    print('NO VALID POSITION')
         
         return {'PASS_THROUGH'};
         
@@ -256,6 +264,9 @@ class LiveLandmarksCreator(bpy.types.Operator):
         depsgraph = context.evaluated_depsgraph_get()
         depsgraph.update()
 
+        self.M_eval = self.M.evaluated_get(depsgraph)
+        self.N_eval = self.N.evaluated_get(depsgraph)
+
         m_bmesh = bmesh.new()
         n_bmesh = bmesh.new()
 
@@ -263,7 +274,7 @@ class LiveLandmarksCreator(bpy.types.Operator):
         n_bmesh.from_object(self.N, depsgraph)
 
         ensurelookuptable(m_bmesh)
-        ensurelookuptable(m_bmesh)
+        ensurelookuptable(n_bmesh)
 
         # m_evaluated = self.M.evaluated_get(depsgraph).to_mesh()
         # print(m_evaluated)

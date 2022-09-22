@@ -216,7 +216,8 @@ def getMarkerXPlane(meshobject, landmark):
         mlocation = Vector((m.location[0], m.location[1], m.location[2]));
         fliplocation = Vector((mlocation.x * -1, mlocation.y, mlocation.z));
         diffDist = (fliplocation - baselocation).length;
-        if(diffDist < 0.0001):
+        print('DIFF DISTANCE IN MIRROR ', diffDist)
+        if(diffDist < 0.001):
             return m;
     return None;
 

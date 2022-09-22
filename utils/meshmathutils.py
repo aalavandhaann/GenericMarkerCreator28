@@ -237,6 +237,21 @@ def getBarycentricCoordinate(p, a, b, c, *, d=None, epsilon=0.0000001,snapping=T
     ratio = u + v + w;
     return u,v,w,ratio, (u >= 0.0 and v >=0.0 and u >=0.0 and ratio <=1.0);
 
+def getBarycentricCoordinateFromIndices(p, mesh, indices, *, epsilon=0.0000001,snapping=True, extra_info = False):
+    points = [];
+    vertices = mesh.data.vertices;
+
+    for vid in indices:
+        v = vertices[vid];
+        points.append(v.co.copy());
+    
+    u,v,w,ratio, isinside = getBarycentricCoordinate(p, points[0],points[1],points[2], epsilon=epsilon, snapping=snapping);
+    
+    if(not extra_info):
+        return u,v,w,ratio, isinside;
+    else:
+        return u,v,w,ratio, isinside, indices[0], indices[1], indices[2];
+
 
 def getBarycentricCoordinateFromPolygonFace(p, pface, mesh, *, epsilon=0.0000001,snapping=True, extra_info = False):
     points = [];
