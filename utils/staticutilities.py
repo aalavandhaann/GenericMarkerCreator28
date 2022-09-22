@@ -103,7 +103,7 @@ def addConstraint(context, mesh, bary_ratios, bary_indices, co, *, should_reorde
     else:
         if(create_visual_landmarks):
             tempmarkersource = context.scene.landmarks_use_selection;
-            if(tempmarkersource.strip() is ""):
+            if(tempmarkersource.strip() == ""):
                 tempmarkersource = "~PRIMITIVE~";
             bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=mesh.name, markersource=tempmarkersource);
         

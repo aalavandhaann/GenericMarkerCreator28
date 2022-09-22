@@ -123,9 +123,9 @@ class LiveLandmarksCreator(bpy.types.Operator):
                     markerskd, markercos = getConstraintsKD(context, the_mesh);
                     co, index, dist = markerskd.find(hitpoint);
                     if(not len(the_mesh.generic_landmarks)):
-                        dist = 9999999.0;
+                        dist = None;
                         
-                    if(dist is not None):
+                    if(dist):
                         if(dist > constants.MARKER_MIN_DISTANCE):
                             proceedToAddMarker = True;
                         else:
@@ -170,7 +170,7 @@ class LiveLandmarksCreator(bpy.types.Operator):
                             dictio = (loc, gm.id);
                             self.M_markers.append(dictio);
                         
-                        if(self.M != self.N and self.N is not None):
+                        if(self.M != self.N and self.N):
                             for gm in self.N.generic_landmarks:
                                 loc = Vector([dim for dim in gm.location]);
                                 loc = self.N.matrix_world @ loc;

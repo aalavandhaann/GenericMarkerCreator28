@@ -134,7 +134,7 @@ class SpectralHKS(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):            
+        if(mesh):            
             heat_colors, k = getHKSColors(context, mesh, mesh.eigen_k, mesh.hks_t, mesh.hks_current_t, mesh.hks_log_start, mesh.hks_log_end);
             
             pp = mesh.post_process_colors;
@@ -171,7 +171,7 @@ class SpectralWKS(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             wks_colors, k = getWKSColors(context, mesh, mesh.eigen_k, mesh.wks_e, mesh.wks_current_e, mesh.wks_variance);
             pp = mesh.post_process_colors;
             ppmin = mesh.post_process_min;
@@ -207,7 +207,7 @@ class SpectralGISIF(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             gisif_colors, k, gisif_name = getGISIFColorsInner(context, mesh);
             mesh.gisif_group_name = gisif_name;
             mesh.gisif_signatures.clear();
@@ -265,7 +265,7 @@ class SpectralFeatures(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             m_path = bpy.path.abspath('%s/%s.mat'%(mesh.signatures_dir, mesh.name));
             data = sio.loadmat(m_path)['X'];
             normalized_gisifs = np.sum(data, axis=1);   
@@ -291,7 +291,7 @@ class AddSpectralSignatures(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             gisif_colors, k, gisif_name = getGISIFColorsInner(context, mesh);
             k1_list, k2_list, sx, p1_list, p2_list, mean_list, gaussian_list, normals = need_curvatures(mesh);
             normalized_gisif_signatures = gisif_colors / np.sqrt(np.sum(gisif_colors**2));            
@@ -328,7 +328,7 @@ class SpectralShape(bpy.types.Operator):
         except:
             mesh = context.active_object;
         
-        if(mesh is not None):
+        if(mesh):
             if(self.use_eigen_k != -1):
                 self.applySpectralShape(context, mesh, self.use_eigen_k);
             else:
@@ -356,7 +356,7 @@ class AddSpectralSignatureLandmarks(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             only_gisif_colors, k, gisif_name = getGISIFColorsInner(context, mesh);
             only_gisif_colors = only_gisif_colors.reshape(only_gisif_colors.shape[0], 1);
             #Normalize the gisif colors

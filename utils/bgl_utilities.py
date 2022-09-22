@@ -320,7 +320,7 @@ def getScreenLookAxis(context, location=None):
     region = context.region
     rv3d = context.region_data
     coord = region.width/2.0, region.height/2.0;
-    if(location is not None):
+    if(location):
         coord = view3d_utils.location_3d_to_region_2d(region, rv3d, location);
     
     if(not coord):
@@ -725,7 +725,7 @@ def ScreenPoint3D(context, event, mesh, *, ray_max=1000.0, position_mouse = True
         matrix = obj.matrix_world.copy();
         if obj.type == 'MESH':
             hit, normal, face_index = obj_ray_cast(obj, matrix);
-            if hit is not None:
+            if (hit):
                 hit_world = matrix * hit;
                 return hit_world, True, face_index, hit;
     return view_vector, False, None, None;

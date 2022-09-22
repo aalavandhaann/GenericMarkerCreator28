@@ -164,7 +164,7 @@ class CreateLandmarks(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             # unselect all  
             for item in bpy.context.selectable_objects:  
                 item.select_set(False);  
@@ -200,7 +200,7 @@ class ReorderLandmarks(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             M, N = detectMN(mesh);
             if(not M and not N):
                 M = mesh;
@@ -373,7 +373,7 @@ class SnapLandmarksToVertex(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             M, N = detectMN(mesh);
             if(M):
                 self.snapLandmarks(context, M);
@@ -399,7 +399,7 @@ class ChangeLandmarks(bpy.types.Operator):
         except:
             meshobject = context.active_object;
             
-        if(meshobject is not None):            
+        if(meshobject):            
             M, N = detectMN(meshobject);
             if(not M and not N):
                 M = meshobject;
@@ -907,7 +907,7 @@ class LoadBIMLandmarks(bpy.types.Operator):
         except:
             mesh = context.active_object;
             
-        if(mesh is not None):
+        if(mesh):
             mesh_faces = mesh.data.polygons
             mesh_loops = mesh.data.loops
             current_ids = [gm.id for gm in mesh.generic_landmarks];   

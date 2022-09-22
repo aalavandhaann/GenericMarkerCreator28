@@ -125,12 +125,12 @@ def get_wks(eigen_values, eigen_vectors, energy_steps=None, absolute_sigma=None,
     eigen_values = eigen_values[idx[1:]];
     eigen_vectors = eigen_vectors[:, idx[1:]];
 
-    if energy_steps is None:
-        assert num_steps is not None
+    if not energy_steps:
+        assert num_steps != None
         energy_steps = np.log(np.linspace(eigen_values[1], eigen_values[-1], num_steps))
 
-    if absolute_sigma is None:
-        if relative_sigma is not None:
+    if not absolute_sigma:
+        if relative_sigma != None:
             absolute_sigma = (energy_steps.max() - energy_steps.min()) * relative_sigma
         else:
             # from paper
