@@ -202,7 +202,8 @@ def getMarkersForMirrorX(context, bmarkerslist):
         reflectionmarker = getMarkerXPlane(belongsto, hmarker);
         if(reflectionmarker):
             mirrorbmarker = getBlenderMarker(belongsto, reflectionmarker);
-            reflectionmarkers.append(mirrorbmarker);
+            if(mirrorbmarker):
+                reflectionmarkers.append(mirrorbmarker);
     
     return reflectionmarkers;
 
@@ -231,8 +232,11 @@ def getGenericLandmark(meshobject, bmarker):
     return None;
     
 def getBlenderMarker(meshobject, landmark):
-    mname = meshobject.name + "_marker_"+str(landmark.id);    
-    return bpy.data.objects[mname];
+    mname = meshobject.name + "_marker_"+str(landmark.id);
+    try:
+        return bpy.data.objects[mname];
+    except KeyError:
+        return None;
 
 def getMeshForBlenderMarker(blendermarker):
     if(blendermarker.is_visual_landmark):
@@ -245,8 +249,11 @@ def getMeshForBlenderMarker(blendermarker):
     
 def getMarkerOwner(markerobj):
     if(markerobj.is_visual_landmark):
-        belongsto = bpy.data.objects[markerobj.name.split("_marker_")[0]];
-        return belongsto, False, False;    
+        try:
+            belongsto = bpy.data.objects[markerobj.name.split("_marker_")[0]];
+            return belongsto, False, False;    
+        except KeyError:
+            return None, False, False;
     return None, False, False;
 
 

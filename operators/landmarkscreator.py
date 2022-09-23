@@ -35,6 +35,7 @@ class CreateLandmarks(bpy.types.Operator):
     hidemarkers: bpy.props.BoolProperty(name="Hide Landmarks Flag", default = False);
     markersource: bpy.props.StringProperty(name="Mesh to use as Landmark", default = "");
     colorizemarkers: bpy.props.BoolProperty(name="Recolorize Landmarks", default = False);
+    changemarkermesh: bpy.props.BoolProperty(name="Change Marker Mesh", default = False);
         
     def hideConstraintsVisually(self, context, mesh):        
         for marker in mesh.generic_landmarks:
@@ -45,7 +46,8 @@ class CreateLandmarks(bpy.types.Operator):
             except KeyError:
                 pass;
             
-    def updateConstraints(self, context, mesh, mesh_eval):        
+    def updateConstraints(self, context, mesh, mesh_eval):       
+        print('UPDATE MARKER POSITIONS ') 
         if(context.mode != "OBJECT"):
             bpy.ops.object.mode_set(mode = 'OBJECT', toggle = False);
         
@@ -56,14 +58,10 @@ class CreateLandmarks(bpy.types.Operator):
             
             location = getGeneralCartesianFromBarycentre(marker.v_ratios, [vertex1, vertex2, vertex3]);
             marker.location = location;
-            bmarker = None;
-            
-            try:
-                bmarker = bpy.data.objects[mesh.name + "_marker_"+str(marker.id)];            
-                bmarker.parent = None;
-                bmarker.location = location;        
-            except KeyError:
-                pass;
+            bmarker = getBlenderMarker(mesh, marker)
+            if(bmarker):
+                bmarker.parent = None
+                bmarker.location = location
             
             if(context.mode != "OBJECT"):
                 bpy.ops.object.mode_set(mode = 'OBJECT', toggle = False);
@@ -72,7 +70,7 @@ class CreateLandmarks(bpy.types.Operator):
             if(bmarker):
                 bmarker.parent = mesh;
         
-    def createConstraintsVisual(self, context, mesh, mesh_eval):
+    def createConstraintsVisual(self, context, mesh, mesh_eval, use_existing_marker_meshes=True):
         useprimitive = False;
         referencemesh = None;
         
@@ -90,7 +88,9 @@ class CreateLandmarks(bpy.types.Operator):
         if(not context.mode == "OBJECT"):
             bpy.ops.object.mode_set(mode='OBJECT', toggle=False);
         
-        deleteObjectWithMarkers(context, mesh);
+        if(not use_existing_marker_meshes):
+            print('DELETE EXISTING MARKERS ')
+            deleteObjectWithMarkers(context, mesh);
         
         temp = -1;
         
@@ -98,12 +98,15 @@ class CreateLandmarks(bpy.types.Operator):
         mesh_faces = mesh.data.polygons;
         
         for index, marker in enumerate(mesh.generic_landmarks):            
-            markername = mesh.name + "_marker_"+str(marker.id);
-            try:
-                markerobj = context.data.objects[markername];
-                createmarker = False;
-            except:
-                createmarker = True;
+            markerobj = getBlenderMarker(mesh, marker)
+            if(markerobj):
+                continue
+            # markername = mesh.name + "_marker_"+str(marker.id);
+            # try:
+            #     markerobj = context.data.objects[markername];
+            #     createmarker = False;
+            # except:
+            #     createmarker = True;
             
             if(marker.v_indices[0] == -1 and marker.v_indices[1] == -1 and marker.v_indices[-2] == -1):
                 marker.v_indices[0], marker.v_indices[1], marker.v_indices[2] = [mesh_loops[lid].vertex_index for lid in mesh_faces[marker.faceindex].loop_indices];                
@@ -115,9 +118,9 @@ class CreateLandmarks(bpy.types.Operator):
             location = getGeneralCartesianFromBarycentre(marker.v_ratios, [vertex1, vertex2, vertex3]);
             marker.location = location;
             
-            if(useprimitive):
+            if(not markerobj and useprimitive):
                 bpy.ops.mesh.primitive_cube_add(location=location, size = 0.15);
-            else:
+            elif(not markerobj and not useprimitive):
                 mk_mesh = bpy.data.meshes.new(mesh.name + "_marker_"+str(marker.id));
                 # Create new object associated with the mesh
                 ob_new = bpy.data.objects.new(mesh.name + "_marker_"+str(marker.id), mk_mesh);
@@ -127,15 +130,16 @@ class CreateLandmarks(bpy.types.Operator):
                 context.scene.collection.objects.link(ob_new);
                 bpy.ops.object.select_all(action='DESELECT') #deselect all object
                 ob_new.select_set(True);
-                ob_new.location = location;
+                markerobj = ob_new
                 context.view_layer.objects.active = ob_new;
                 
 #             markerobj = context.object;
-            markerobj = context.active_object;
+            # markerobj = context.active_object;
             markerobj.is_visual_landmark = True;
             markerobj.landmark_id = marker.id;
             markerobj.name = mesh.name + "_marker_"+str(marker.id);
             markerobj.belongs_to = mesh.name;
+            markerobj.location = location
             
             markerobj.data.materials.clear();
             
@@ -180,7 +184,7 @@ class CreateLandmarks(bpy.types.Operator):
             elif(self.hidemarkers):
                 self.hideConstraintsVisually(context, mesh);
             else:
-                self.createConstraintsVisual(context, mesh, mesh_eval);
+                self.createConstraintsVisual(context, mesh, mesh_eval, use_existing_marker_meshes=not self.changemarkermesh);
                 
         return{'FINISHED'};
     
@@ -212,9 +216,9 @@ class ReorderLandmarks(bpy.types.Operator):
             if(tempmarkersource.strip() == ""):
                 tempmarkersource = "~PRIMITIVE~";
             
-            bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=M.name, markersource=tempmarkersource);
+            bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=M.name, markersource=tempmarkersource, changemarkermesh=True);
             if(N):
-                bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=N.name, markersource=tempmarkersource);
+                bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=N.name, markersource=tempmarkersource, changemarkermesh=True);
         
         return {'FINISHED'};
 
@@ -409,9 +413,9 @@ class ChangeLandmarks(bpy.types.Operator):
                 tempmarkersource = "~PRIMITIVE~";
 
             if(M):
-                bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=M.name, markersource=tempmarkersource);
+                bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=M.name, markersource=tempmarkersource, changemarkermesh=True);
             if(N):
-                bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=N.name, markersource=tempmarkersource);
+                bpy.ops.genericlandmarks.createlandmarks('EXEC_DEFAULT',currentobject=N.name, markersource=tempmarkersource, changemarkermesh=True);
             
         return {'FINISHED'};   
     
@@ -445,7 +449,11 @@ class AutoLinkLandmarksByID(bpy.types.Operator):
                         tgm = N.generic_landmarks[N_landmarks_id.index(gm.id)];
                         M_marker = getBlenderMarker(M, gm);
                         N_marker = getBlenderMarker(N, tgm);
-                        bpy.ops.genericlandmarks.linklandmarks('EXEC_DEFAULT', marker_1=M_marker.name, marker_2=N_marker.name);
+                        if(M_marker and N_marker):
+                            bpy.ops.genericlandmarks.linklandmarks('EXEC_DEFAULT', marker_1=M_marker.name, marker_2=N_marker.name);
+                        else:
+                            message = "No linked markers found";
+                            bpy.ops.genericlandmarks.messagebox('INVOKE_DEFAULT',messagetype='ERROR',message=message,messagelinesize=60);            
                     except ValueError:
                         pass;
             else:
@@ -481,27 +489,37 @@ class UnLinkLandmarks(bpy.types.Operator):
             
             
             for m in source.generic_landmarks:
+                marker_m = getBlenderMarker(source, m)
                 if(m.is_linked):
                     tm = [tm for tm in target.generic_landmarks if tm.id == m.linked_id][0];
                     if(not tm.is_linked):
                         m.is_linked = False;
                         m.linked_id = -1;
-                        changeUnlinkedMarkerColor(source, getBlenderMarker(source, m));
-                        changeUnlinkedMarkerColor(target, getBlenderMarker(target, tm));
+                        marker_n = getBlenderMarker(target, tm)
+                        if(marker_m):
+                            changeUnlinkedMarkerColor(source, marker_m)
+                        if(marker_n):
+                            changeUnlinkedMarkerColor(target, marker_n);
                 else:
-                    changeUnlinkedMarkerColor(source, getBlenderMarker(source, m));
+                    if(marker_m):
+                        changeUnlinkedMarkerColor(source, marker_m);
                     
                     
             for m in target.generic_landmarks:
+                marker_m = getBlenderMarker(target, m)
                 if(m.is_linked):
                     sm = [sm for sm in source.generic_landmarks if sm.id == m.linked_id][0];
                     if(not sm.is_linked):
                         m.is_linked = False;
                         m.linked_id = -1;
-                        changeUnlinkedMarkerColor(target, getBlenderMarker(target, m));
-                        changeUnlinkedMarkerColor(source, getBlenderMarker(source, sm));                
+                        marker_n = getBlenderMarker(source, sm)
+                        if(marker_m):
+                            changeUnlinkedMarkerColor(target, marker_m)
+                        if(marker_n):
+                            changeUnlinkedMarkerColor(source, marker_n);             
                 else:
-                    changeUnlinkedMarkerColor(target, getBlenderMarker(target, m));
+                    if(marker_m):
+                        changeUnlinkedMarkerColor(target, marker_m)
                 
                 
     def execute(self, context):
@@ -653,6 +671,7 @@ class RemoveLandmarks(bpy.types.Operator):
             
             #iterate through the source landmarks
             for m in source.generic_landmarks:
+                marker_m = getBlenderMarker(source, m)
                 #Check if it the marker in source is a linked one
                 if(m.is_linked):
                     #If linked, try accessing the target's landmark with the
@@ -664,7 +683,8 @@ class RemoveLandmarks(bpy.types.Operator):
                     except IndexError:
                         m.linked_id = -1;
                         m.is_linked = False;
-                        changeUnlinkedMarkerColor(source, getBlenderMarker(source, m));
+                        if(marker_m):
+                            changeUnlinkedMarkerColor(source, marker_m);
             
             if(len(source.generic_landmarks) == 0):
                 source.total_landmarks = len(source.generic_landmarks);
@@ -672,6 +692,7 @@ class RemoveLandmarks(bpy.types.Operator):
             if(target):
                 #iterate through the target landmarks
                 for m in target.generic_landmarks:
+                    marker_m = getBlenderMarker(target, m)
                     #Check if it the marker in target is a linked one
                     if(m.is_linked):
                         #If linked, try accessing the source's landmark with the
@@ -683,7 +704,8 @@ class RemoveLandmarks(bpy.types.Operator):
                         except IndexError:
                             m.linked_id = -1;
                             m.is_linked = False;
-                            changeUnlinkedMarkerColor(target, getBlenderMarker(target, m));           
+                            if(marker_m):
+                                changeUnlinkedMarkerColor(target, marker_m);           
             
                 if(len(target.generic_landmarks) == 0):
                     target.total_landmarks = len(target.generic_landmarks);
@@ -798,7 +820,7 @@ class LandmarksPairFinder(bpy.types.Operator):
             targetmarker = marker;
             sourcemarker = self.getPairMarker(context, hmarker, N, M);
                     
-        if(sourcemarker is not None and targetmarker is not None):
+        if(sourcemarker and targetmarker):
             sourcemarker.select_set(True);
             targetmarker.select_set(True);      
         

@@ -219,8 +219,9 @@ class SpectralGISIF(bpy.types.Operator):
                     mindex = min(len(mesh.generic_landmarks), mesh.gisif_symmetry_index) - 1;
                     marker = mesh.generic_landmarks[mindex];
                     bmarker = getBlenderMarker(mesh, marker);
-                    bpy.ops.object.select_all(action="DESELECT");
-                    bmarker.select_set(True);
+                    if(bmarker):
+                        bpy.ops.object.select_all(action="DESELECT");
+                        bmarker.select_set(True);
                     
                     indices = np.array(marker.v_indices);
                     uvw = np.array(marker.v_ratios);
