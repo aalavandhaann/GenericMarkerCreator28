@@ -47,13 +47,10 @@ def ScreenPoint3D(context, event, *, ray_max=1000.0, position_mouse = True, use_
     
     #The 3D location converted in object local coordinates
     localLocation3D = matrix_inv @ worldLocation3D
-    localViewVector3D = matrix_inv @ view_vector
     depsgraph = context.evaluated_depsgraph_get()
     depsgraph.update()
-
-    
     # result, location, normal, face_index = use_mesh.ray_cast(localLocation3D, direction=localViewVector3D, depsgraph=depsgraph)
-    location, normal, face_index, distance = bvh_tree.ray_cast(localLocation3D, localViewVector3D)
+    location, normal, face_index, distance = bvh_tree.ray_cast(localLocation3D, view_vector)
     # location, normal, face_index, distance = bvh_tree.find_nearest(localLocation3D)
     result = (location != None)
     
