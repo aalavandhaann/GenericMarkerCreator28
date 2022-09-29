@@ -120,6 +120,7 @@ class CreateLandmarks(bpy.types.Operator):
             
             if(not markerobj and useprimitive):
                 bpy.ops.mesh.primitive_cube_add(location=location, size = 0.15);
+                markerobj = context.active_object
             elif(not markerobj and not useprimitive):
                 mk_mesh = bpy.data.meshes.new(mesh.name + "_marker_"+str(marker.id));
                 # Create new object associated with the mesh

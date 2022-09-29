@@ -310,7 +310,7 @@ class LiveLandmarksCreator(bpy.types.Operator):
                 self.N_markers.append(dictio);
         
         maxsize = max(self.mesh.dimensions.x, self.mesh.dimensions.y, self.mesh.dimensions.z);
-        markersize = maxsize * 0.0025;            
+        markersize = maxsize * 0.025;            
         tempmarkersource = "Marker";
         
         try:
