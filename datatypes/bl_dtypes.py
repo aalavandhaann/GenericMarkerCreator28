@@ -14,6 +14,12 @@ def getMeshBVHTree(context, mesh, deform=True, cage=False):
     bvhtree  = BVHTree.FromObject(mesh, depsgraph, deform=deform, cage=cage)    
     return bvhtree
 
+def getMarkerLocation(self):
+    self.updateLocation()
+    return self['location']
+
+def setMarkerLocation(self, value):
+    self['location'] = value
 
 class Point(bpy.types.PropertyGroup):
     index: bpy.props.IntProperty(name = 'index', description="Coordinate index value", default=-1);
@@ -29,22 +35,28 @@ class GenericLandmark(bpy.types.PropertyGroup):
     faceindex: bpy.props.IntProperty(name="Triangle Index", description="Index or indentifier of the triangle on which this landmark is placed.", default=-1);
     v_indices: bpy.props.IntVectorProperty(name="Vertex indices", description="Vertex indices on which the barycentric ratios have to be applied",default=(-1, -1, -1));
     v_ratios: bpy.props.FloatVectorProperty(name="Barycentric ratios", description="Given the vertex indices (==3) apply the barycentric ratios for the location of the marker",default=(0.0,0.0,0.0));
-    location: bpy.props.FloatVectorProperty(name="Location of Landmark",default=(0.0,0.0,0.0));
+    location: bpy.props.FloatVectorProperty(name="Location of Landmark",default=(0.0,0.0,0.0), get=getMarkerLocation, set=setMarkerLocation);
     landmark_name: bpy.props.StringProperty(name="Landmark Name", default="No Name");
     
     def updateLocation(self):
         owner_mesh = self.id_data
-        
-        polygons = owner_mesh.data.polygons
-        loops = owner_mesh.data.loops
-        vertices = owner_mesh.data.vertices
+
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        depsgraph.update()
+        mesh_eval = owner_mesh.evaluated_get(depsgraph)
+
+        polygons = mesh_eval.data.polygons
+        loops = mesh_eval.data.loops
+        vertices = mesh_eval.data.vertices
 
         face = polygons[self.faceindex]        
-        a, b, c = [vertices[loops[lid].vertex_index].co for lid in face.loop_indices]
+        # a, b, c = [vertices[loops[lid].vertex_index].co for lid in face.loop_indices]
+        a, b, c = [vertices[vid].co for vid in self.v_indices]
 
         ba = Vector(self.v_ratios)
         coord = getCartesianFromBarycentre(ba, a, b, c)
-        self.location = coord.xyz
+        self.location = coord.xyz       
+        # print('UPDATE LOCATION ', coord.xyz)
 
     def bestVertex(self):
         v_indices = [i for i in self.v_indices]

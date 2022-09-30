@@ -46,18 +46,13 @@ class CreateLandmarks(bpy.types.Operator):
             except KeyError:
                 pass;
             
-    def updateConstraints(self, context, mesh, mesh_eval):       
-        print('UPDATE MARKER POSITIONS ') 
+    def updateConstraints(self, context, mesh, mesh_eval): 
         if(context.mode != "OBJECT"):
             bpy.ops.object.mode_set(mode = 'OBJECT', toggle = False);
         
         for marker in mesh.generic_landmarks:
-            vertex1 = mesh_eval.data.vertices[marker.v_indices[0]].co;
-            vertex2 = mesh_eval.data.vertices[marker.v_indices[1]].co;
-            vertex3 = mesh_eval.data.vertices[marker.v_indices[2]].co;
-            
-            location = getGeneralCartesianFromBarycentre(marker.v_ratios, [vertex1, vertex2, vertex3]);
-            marker.location = location;
+            # marker.updateLocation()
+            location = marker.location
             bmarker = getBlenderMarker(mesh, marker)
             if(bmarker):
                 bmarker.parent = None
@@ -93,30 +88,16 @@ class CreateLandmarks(bpy.types.Operator):
             deleteObjectWithMarkers(context, mesh);
         
         temp = -1;
-        
-        mesh_loops = mesh.data.loops;
-        mesh_faces = mesh.data.polygons;
-        
+                
         for index, marker in enumerate(mesh.generic_landmarks):            
             markerobj = getBlenderMarker(mesh, marker)
             if(markerobj):
+                markerobj.location = marker.location
+                markerobj.parent = mesh
                 continue
-            # markername = mesh.name + "_marker_"+str(marker.id);
-            # try:
-            #     markerobj = context.data.objects[markername];
-            #     createmarker = False;
-            # except:
-            #     createmarker = True;
-            
-            if(marker.v_indices[0] == -1 and marker.v_indices[1] == -1 and marker.v_indices[-2] == -1):
-                marker.v_indices[0], marker.v_indices[1], marker.v_indices[2] = [mesh_loops[lid].vertex_index for lid in mesh_faces[marker.faceindex].loop_indices];                
-                
-            vertex1 = mesh_eval.data.vertices[marker.v_indices[0]].co;
-            vertex2 = mesh_eval.data.vertices[marker.v_indices[1]].co;
-            vertex3 = mesh_eval.data.vertices[marker.v_indices[2]].co;
-            
-            location = getGeneralCartesianFromBarycentre(marker.v_ratios, [vertex1, vertex2, vertex3]);
-            marker.location = location;
+
+            # marker.updateLocation()
+            location = marker.location
             
             if(not markerobj and useprimitive):
                 bpy.ops.mesh.primitive_cube_add(location=location, size = 0.15);
@@ -134,8 +115,6 @@ class CreateLandmarks(bpy.types.Operator):
                 markerobj = ob_new
                 context.view_layer.objects.active = ob_new;
                 
-#             markerobj = context.object;
-            # markerobj = context.active_object;
             markerobj.is_visual_landmark = True;
             markerobj.landmark_id = marker.id;
             markerobj.name = mesh.name + "_marker_"+str(marker.id);
@@ -154,12 +133,6 @@ class CreateLandmarks(bpy.types.Operator):
             
             if(marker.id > temp):
                 temp = marker.id;
-            
-#         for area in context.screen.areas: # iterate through areas in current screen
-#             if area.type == 'VIEW_3D':
-#                 for space in area.spaces: # iterate through spaces in current VIEW_3D area
-#                     if space.type == 'VIEW_3D': # check if space is a 3D view
-#                         space.viewport_shade = 'SOLID' # set the viewport shading to rendered
         
         context.view_layer.objects.active = mesh;
         

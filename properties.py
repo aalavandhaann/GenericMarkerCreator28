@@ -3,6 +3,24 @@ import bpy
 from GenericMarkerCreator28.utils.staticutilities import getMarkerOwner, getGenericLandmark;
 from GenericMarkerCreator28.datatypes.bl_dtypes import GenericLandmark, GenericPointSignature, VertexToSurfaceMapping, VertexToSurfaceMappingBVH
 
+def checkObjectsInScene(scene):
+    orphanmarkers = []
+    for o in scene.objects:
+        if(o.type == 'MESH' and o.is_visual_landmark):
+            parentmesh = scene.objects.get(o.belongs_to, None)
+            if(not parentmesh):
+                orphanmarkers.append(o)
+    print('TOTAL ORPHAN MARKERS ', len(orphanmarkers))
+    if(len(orphanmarkers)):
+        bpy.ops.object.select_all(action='DESELECT')
+        for o in orphanmarkers:
+            if(o):
+                o.hide_viewport = False
+                o.hide_set(False)
+                o.select_set(True)
+        
+        bpy.ops.object.delete()
+
 def updateMeanCurvatures(self, context):
     if(self.post_process_colors):
         bpy.ops.genericlandmarks.meancurvatures('EXEC_DEFAULT', currentobject=self.name);
@@ -163,8 +181,14 @@ def registration_landmarks(delete=False):
         bpy.types.Scene.landmarks_use_selection = bpy.props.EnumProperty(name = "Landmarks List", items = get_marker_meshes, description = "Meshes available in the Blender scene to be used for as landmark mesh");
 
         bpy.types.Object.geodesics_show_landmark_seams = bpy.props.BoolProperty(name="Show Landmark Seams", description="If you have to show seams then use modal operator to show the seam paths", default=False)
-
+        
+        # if not checkObjectsInScene in bpy.app.handlers.depsgraph_update_post:
+        #     bpy.app.handlers.depsgraph_update_post.append(checkObjectsInScene)
     else:
+
+        # if checkObjectsInScene in bpy.app.handlers.depsgraph_update_post:
+        #     bpy.app.handlers.depsgraph_update_post.remove(checkObjectsInScene)
+
         del bpy.types.Object.snap_landmarks
         del bpy.types.Object.snap_landmarks_apply_on_duplicate
         del bpy.types.Object.snap_landmarks_create_vertices
@@ -187,6 +211,8 @@ def registration_landmarks(delete=False):
         del bpy.types.Scene.landmarks_use_selection
 
         del bpy.types.Object.geodesics_show_landmark_seams
+
+
 
 
 def registration_spectral(delete=False):
