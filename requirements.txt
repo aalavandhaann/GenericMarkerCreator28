@@ -1,2 +1,8 @@
 numpy
 scipy
+scikit-learn
+matplotlib
+cython
+autowrap
+py-chenhancc
+py-goicp
