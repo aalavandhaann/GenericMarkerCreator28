@@ -66,7 +66,6 @@ class CreateLandmarks(bpy.types.Operator):
                 bmarker.parent = mesh;
         
     def createConstraintsVisual(self, context, mesh, mesh_eval, use_existing_marker_meshes=True):
-        print('CREATE CONSTRAINTS VISUAL A PRINT STATEMENT TO TEST ADDON UPDATER')
         useprimitive = False;
         referencemesh = None;
         
