@@ -29,12 +29,15 @@ def init():
 
 def register():
     for cls in ordered_classes:
+        print('REGISTER CLASS ', cls)
         bpy.utils.register_class(cls)
 
-    for module in modules:
+    for module in modules:        
         if module.__name__ == __name__:
             continue
-        if hasattr(module, "register"):
+        elif 'addon_updater' in module.__name__:
+            continue
+        elif hasattr(module, "register"):
             module.register()
     
     from GenericMarkerCreator28.operators.landmarkspair import AssignMeshPair;
@@ -61,7 +64,6 @@ def unregister():
         km.keymap_items.remove(kmi)
     
     addon_keymaps.clear()
-
     
     for cls in reversed(ordered_classes):
         bpy.utils.unregister_class(cls)
@@ -69,7 +71,9 @@ def unregister():
     for module in modules:
         if module.__name__ == __name__:
             continue
-        if hasattr(module, "unregister"):
+        elif 'addon_updater' in module.__name__:
+            continue
+        elif hasattr(module, "unregister"):
             module.unregister()
     
 
