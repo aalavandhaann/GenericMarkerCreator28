@@ -29,7 +29,6 @@ def init():
 
 def register():
     for cls in ordered_classes:
-        print('REGISTER CLASS ', cls)
         bpy.utils.register_class(cls)
 
     for module in modules:        
