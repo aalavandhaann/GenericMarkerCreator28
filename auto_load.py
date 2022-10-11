@@ -51,12 +51,15 @@ def register():
         (RemoveLandmarks, 'MINUS', False, False), 
         ]
 
-    wm = bpy.context.window_manager
-    kc = wm.keyconfigs.addon
-    for class_o, key_name, ctrl, shift in classes_key_mappings:        
-        km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
-        kmi = km.keymap_items.new(class_o.bl_idname, type=key_name, value='PRESS', shift=shift, ctrl=ctrl)
-        addon_keymaps.append((km, kmi))
+    try:
+        wm = bpy.context.window_manager
+        kc = wm.keyconfigs.addon
+        for class_o, key_name, ctrl, shift in classes_key_mappings:        
+            km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
+            kmi = km.keymap_items.new(class_o.bl_idname, type=key_name, value='PRESS', shift=shift, ctrl=ctrl)
+            addon_keymaps.append((km, kmi))
+    except AttributeError:
+        pass
 
 def unregister():
     for km, kmi in addon_keymaps:
