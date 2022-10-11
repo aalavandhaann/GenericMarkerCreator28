@@ -68,6 +68,7 @@ class CreateLandmarks(bpy.types.Operator):
     def createConstraintsVisual(self, context, mesh, mesh_eval, use_existing_marker_meshes=True):
         useprimitive = False;
         referencemesh = None;
+        collection_of_mesh = mesh.users_collection[0]
         
         if(context.scene.landmarks_use_selection != ''):
             referencemesh = bpy.data.objects[context.scene.landmarks_use_selection];
@@ -114,7 +115,7 @@ class CreateLandmarks(bpy.types.Operator):
                 ob_new.select_set(True);
                 markerobj = ob_new
                 context.view_layer.objects.active = ob_new;
-                
+            
             markerobj.is_visual_landmark = True;
             markerobj.landmark_id = marker.id;
             markerobj.name = mesh.name + "_marker_"+str(marker.id);
@@ -130,6 +131,12 @@ class CreateLandmarks(bpy.types.Operator):
                 
             bpy.ops.object.select_all(action='DESELECT') #deselect all object            
             markerobj.parent = mesh;
+
+            for coll in markerobj.users_collection:
+                coll.objects.unlink(markerobj)
+            
+            collection_of_mesh.objects.link(markerobj)
+
             
             if(marker.id > temp):
                 temp = marker.id;
